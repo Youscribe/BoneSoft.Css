@@ -41,12 +41,13 @@ function<out Function func> =	(. func = new Function();
 					//if (t.Value.EndsWith("=")) {
 					if (first) {
 						first = false;
-					} else if (!t.Value.EndsWith("=")) {
+					} else if (t.Value != null && !t.Value.EndsWith("=")) {
 						txt.Append(", ");
 					}
 
 					bool quoteMe = false;
-					if (t.Type == TermType.String && !t.Value.EndsWith("=")) {
+                    if (t.Type == TermType.String && t.Value != null && !t.Value.EndsWith("="))
+                    {
 						quoteMe = true;
 					}
 					if (quoteMe) { txt.Append("'"); }
