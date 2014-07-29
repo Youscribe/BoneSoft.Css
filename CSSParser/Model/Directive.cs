@@ -211,7 +211,7 @@ namespace BoneSoft.CSS {
 		}
 
 		private string ToCharSetString(string start) {
-			return string.Format("{2}{0} {1}", name, expression.ToString(), start);
+			return string.Format("{2}{0} \"{1}\";", name, expression.ToString(), start);
 		}
 	}
 }
