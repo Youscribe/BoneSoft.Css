@@ -133,6 +133,8 @@ term<out Term trm> =			(. trm = new Term();
 				txt.AppendFormat("U\\{0}", val.ToUpper());
 			} else if (type == TermType.Hex) {
 				txt.Append(val.ToUpper());
+            } else if (type == TermType.String && string.IsNullOrEmpty(val)) {
+                txt.Append("'").Append(val).Append("'");
 			} else {
 				if (sign.HasValue) { txt.Append(sign.Value); }
 				txt.Append(val);

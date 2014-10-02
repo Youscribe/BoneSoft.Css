@@ -2118,7 +2118,7 @@ p.back-center1a
 	
 	.topspace2a{margin-top: 15em;}
 	
-	
+	p.test:after { content:'' }
 	
 	textarea.text-area3
 	{
@@ -2253,7 +2253,8 @@ background-image: -webkit-gradient(linear, left top, left bottom, from(#3e779d),
         [Fact]
         protected void Then_output_should_be_ok()
         {
-            _document.RuleSets.Count.ShouldEqual(243);
+            _document.RuleSets.Count.ShouldEqual(244);
+            _outputCss.ShouldContain("content: ''");
         }
     }
 }
