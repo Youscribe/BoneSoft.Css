@@ -158,14 +158,7 @@ term<out Term trm> =			(. trm = new Term();
             }
             else if (type == TermType.Url)
             {
-                if (val.Contains("'"))
-                {
-                    txt.AppendFormat("url({0})", val);
-                }
-                else
-                {
-                    txt.AppendFormat("url('{0}')", val);
-                }
+                txt.AppendFormat("url('{0}')", val.Replace("'", "").Replace("\"", ""));
             }
             else if (type == TermType.Unicode)
             {

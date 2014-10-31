@@ -41,7 +41,7 @@ namespace CssParserTests
         }
     }
 
-    public class Whith_quoted_directive_charset : And_ParseText
+    public class With_quoted_directive_charset : And_ParseText
     {
         protected override void Establish_context()
         {
@@ -58,7 +58,7 @@ namespace CssParserTests
         }
     }
 
-    public class Whith_rule_containing_content_with_empty_value : And_ParseText
+    public class With_rule_containing_content_with_empty_value : And_ParseText
     {
         protected override void Establish_context()
         {
@@ -75,7 +75,7 @@ namespace CssParserTests
         }
     }
 
-    public class Whith_rule_containing_content_with_quoted_value : And_ParseText
+    public class With_rule_containing_content_with_quoted_value : And_ParseText
     {
         protected override void Establish_context()
         {
@@ -92,7 +92,7 @@ namespace CssParserTests
         }
     }
 
-    public class Whith_rule_containing_important_class : And_ParseText
+    public class With_rule_containing_important_class : And_ParseText
     {
         protected override void Establish_context()
         {
@@ -115,7 +115,7 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
-    public class Whith_directive_containing_quoted_value_and_url : And_ParseText
+    public class With_directive_containing_quoted_value_and_url_without_quote : And_ParseText
     {
         protected override void Establish_context()
         {
@@ -131,6 +131,40 @@ div.sidebar div.caution, div.sidebar div.important {
             document.ToString().ShouldContain(@"@font-face");
             document.ToString().ShouldContain(@"src: url('FreeSerif.otf')");
             document.ToString().ShouldContain(@"font-family: ""Free Serif""");
+        }
+    }
+
+    public class With_directive_containing_quoted_url : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"@font-face {src: url('FreeSerif.otf'); }}";
+        }
+
+        [Fact]
+        public void Then_I_should_get_one_directive_and_text_should_contains_quoted_url()
+        {
+            document.Directives.Count.ShouldEqual(1);
+            document.ToString().ShouldContain(@"src: url('FreeSerif.otf')");
+        }
+    }
+
+    public class With_directive_containing_double_quoted_url : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"@font-face {src: url(""FreeSerif.otf""); }}";
+        }
+
+        [Fact]
+        public void Then_I_should_get_one_directive_and_text_should_contains_quoted_url()
+        {
+            document.Directives.Count.ShouldEqual(1);
+            document.ToString().ShouldContain(@"src: url('FreeSerif.otf')");
         }
     }
 }
