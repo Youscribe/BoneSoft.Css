@@ -569,6 +569,18 @@ namespace BoneSoft.CSS
                 case 1:
                     {
                         Get();
+
+                        if (la.kind == 49)
+                        {
+                            ident = t.val + la.val;
+
+                            Get();
+
+                            ident += la.val;
+
+                            Get();
+                        }
+
                         break;
                     }
                 case 22:
@@ -633,7 +645,9 @@ namespace BoneSoft.CSS
                     }
                 default: SynErr(54); break;
             }
-            ident += t.val;
+
+            if (string.IsNullOrEmpty(ident))
+                ident += t.val;
         }
 
         void expr(out Expression exp)
@@ -885,7 +899,9 @@ namespace BoneSoft.CSS
             {
                 Get();
             }
+
             identity(out ident);
+
             atb.Operand = ident;
             while (la.kind == 4)
             {

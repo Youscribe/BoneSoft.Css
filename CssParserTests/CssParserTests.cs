@@ -115,6 +115,39 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
+    public class With_Epub_3_rules : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @" *[epub|type='pagebreak'] {
+                             display: none;
+                             }
+                             a[epub|type='noteref'] {
+                             -webkit-text-fill-color: black;
+                             text-decoration: none;
+                             color: #000000;
+                             }
+                             a.noteref {
+                             vertical-align: super;
+                             font-size:70%;
+                             text-decoration: none;
+                             -webkit-text-fill-color: black;
+                             color: #000000;
+                             }";
+        }
+
+        [Fact]
+        public void Then_rules_should_be_deleted()
+        {
+            document.RuleSets.Count.ShouldEqual(3);
+            document.ToString().ShouldContain(@"a.noteref");
+            document.ToString().ShouldContain(@"a[epub|type='noteref']");
+            document.ToString().ShouldContain(@"*[epub|type='pagebreak']");
+        }
+    }
+
     public class With_directive_containing_quoted_value_and_url_without_quote : And_ParseText
     {
         protected override void Establish_context()
