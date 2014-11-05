@@ -139,12 +139,35 @@ div.sidebar div.caution, div.sidebar div.important {
         }
 
         [Fact]
-        public void Then_rules_should_be_deleted()
+        public void Then_rules_should_be_parsed()
         {
             document.RuleSets.Count.ShouldEqual(3);
             document.ToString().ShouldContain(@"a.noteref");
             document.ToString().ShouldContain(@"a[epub|type='noteref']");
             document.ToString().ShouldContain(@"*[epub|type='pagebreak']");
+        }
+    }
+
+    public class With_trailing_commas : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @".image_right_in_paragraph, .image_right_in_paragraph_net, .image_right_in_paragraph_text_net, , ,{
+		                    float: right;
+		                    margin-left: 0.7em;
+		                    margin-top: 1em;
+		                    margin-bottom: 1em;
+		                    max-height: 250px;
+		                    max-width: 250px;
+	        }";
+        }
+
+        [Fact]
+        public void Then_remove_trailing_commas()
+        {
+            document.RuleSets.SelectMany(s => s.Selectors).Count().ShouldEqual(3);
         }
     }
 

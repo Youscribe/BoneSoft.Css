@@ -202,7 +202,10 @@ namespace BoneSoft.CSS
                     Get();
                 }
                 selector(out sel);
-                rset.Selectors.Add(sel);
+
+                if (!string.IsNullOrEmpty(sel.ToString()))
+                    rset.Selectors.Add(sel);
+
                 while (la.kind == 4)
                 {
                     Get();
