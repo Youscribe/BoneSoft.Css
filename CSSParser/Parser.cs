@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 
 namespace BoneSoft.CSS
 {
@@ -219,7 +220,9 @@ namespace BoneSoft.CSS
             if (StartOf(3))
             {
                 declaration(out dec);
-                rset.Declarations.Add(dec);
+
+                if (IsValideDeclaration(dec))
+                    rset.Declarations.Add(dec);
                 while (la.kind == 4)
                 {
                     Get();
@@ -234,7 +237,9 @@ namespace BoneSoft.CSS
                     if (la.val.Equals("}")) { Get(); return; }
 
                     declaration(out dec);
-                    rset.Declarations.Add(dec);
+
+                    if (IsValideDeclaration(dec))
+                        rset.Declarations.Add(dec);
                     while (la.kind == 4)
                     {
                         Get();
@@ -254,6 +259,39 @@ namespace BoneSoft.CSS
             {
                 Get();
             }
+        }
+
+        bool IsValideDeclaration(Declaration dec)
+        {
+            bool hasEmptyName = string.IsNullOrEmpty(dec.Name);
+            bool hasExpression = dec.Expression != null;
+            bool hasOnlyEmptyTerms = true;
+
+            if (!hasEmptyName)
+            {
+                if (hasExpression)
+                {
+                    var termsToRemove = new Collection<Term>();
+
+                    foreach (var term in dec.Expression.Terms)
+                    {
+                        if ((term.Type != TermType.Function) && string.IsNullOrEmpty(term.Value))
+                        {
+                            termsToRemove.Add(term);
+                            continue;
+                        }
+
+                        hasOnlyEmptyTerms = false;
+                    }
+
+                    foreach (var term in termsToRemove)
+                    {
+                        dec.Expression.Terms.Remove(term);
+                    }
+                }
+            }
+
+            return !hasEmptyName && hasExpression && !hasOnlyEmptyTerms;
         }
 
         void directive(out Directive dir)
@@ -339,7 +377,9 @@ namespace BoneSoft.CSS
                         if (dir.Type == DirectiveType.Page || dir.Type == DirectiveType.FontFace)
                         {
                             declaration(out dec);
-                            dir.Declarations.Add(dec);
+
+                            if (IsValideDeclaration(dec))
+                                dir.Declarations.Add(dec);
                             while (la.kind == 4)
                             {
                                 Get();
@@ -353,7 +393,8 @@ namespace BoneSoft.CSS
                                 }
                                 if (la.val.Equals("}")) { Get(); return; }
                                 declaration(out dec);
-                                dir.Declarations.Add(dec);
+                                if (IsValideDeclaration(dec))
+                                    dir.Declarations.Add(dec);
                                 while (la.kind == 4)
                                 {
                                     Get();

@@ -171,6 +171,32 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
+    public class With_invalid_semicolons : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @".s_rem {
+	                                margin: 20pt;
+	                                border: solid 1px #6269BD;	/* livre */;
+	                                padding: 5pt;
+	                                background-color: rgb(245,245,245);
+                                    ;;
+	                                font-size: 0.9em;
+	                                /*width: 75%;*/
+	                                line-height: 1.4em;
+                                    }
+	        }";
+        }
+
+        [Fact]
+        public void Then_remove_empty_expressions()
+        {
+            document.RuleSets.SelectMany(s => s.Declarations).Select(s => s.Expression).Count().ShouldEqual(6);
+        }
+    }
+
     public class With_directive_containing_quoted_value_and_url_without_quote : And_ParseText
     {
         protected override void Establish_context()
