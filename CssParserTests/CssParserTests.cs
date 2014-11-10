@@ -171,6 +171,25 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
+    public class With_selector_with_invalid_trialing_dot : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"span. {font-family:"""";font-size:100%;} span.{font-family:"""";font-size:100%;}";
+        }
+
+        [Fact]
+        public void Then_remove_trailing_dot()
+        {
+            document.RuleSets.SelectMany(s => s.Selectors).Count().ShouldEqual(2);
+            var selectorNames = document.RuleSets.SelectMany(s => s.Selectors).SelectMany(s => s.SimpleSelectors).Select(s => s.ElementName).Distinct().ToArray();
+            selectorNames.Length.ShouldEqual(1);
+            selectorNames[0].ShouldEqual("span");
+        }
+    }
+
     public class With_invalid_semicolons : And_ParseText
     {
         protected override void Establish_context()
@@ -194,6 +213,30 @@ div.sidebar div.caution, div.sidebar div.important {
         public void Then_remove_empty_expressions()
         {
             document.RuleSets.SelectMany(s => s.Declarations).Select(s => s.Expression).Count().ShouldEqual(6);
+        }
+    }
+
+    public class With_not_pseudo_class_combined_with_first_of_type_pseudo_class : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @".chap p:not(:first-of-type){
+                            	font-size:xx-large;
+                            	text-align:center;
+                            	font-weight:bold;
+                            }
+                            .droite {text-align: right;
+                            margin-right: 1em;}
+	        ";
+        }
+
+        [Fact]
+        public void Then_parse_should_work()
+        {
+            document.RuleSets.Count.ShouldEqual(2);
+            document.ToString().ShouldContain(@".chap p:not(:first-of-type)");
         }
     }
 

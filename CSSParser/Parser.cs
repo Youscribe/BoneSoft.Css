@@ -907,6 +907,12 @@ namespace BoneSoft.CSS
                 else if (la.kind == 34)
                 {
                     Get();
+
+                    if (la.kind == 4 || la.kind == 26)
+                    {
+                        return;
+                    }
+
                     child.Class = "";
                     if (la.kind == 24)
                     {
@@ -1031,6 +1037,7 @@ namespace BoneSoft.CSS
             {
                 Get();
             }
+
             while (la.kind == 4)
             {
                 Get();
@@ -1050,8 +1057,10 @@ namespace BoneSoft.CSS
                 {
                     Get();
                 }
+
                 expr(out exp);
                 pseudo += exp.ToString();
+
                 while (la.kind == 4)
                 {
                     Get();
@@ -1088,6 +1097,19 @@ namespace BoneSoft.CSS
             {
                 HexValue(out val);
                 trm.Value = val; trm.Type = TermType.Hex;
+            }
+            else if (la.kind == 43)
+            {
+                trm.Value += ":";
+                Get();
+                while (la.kind == 4)
+                {
+                    Get();
+                }
+
+                trm.Value += la.val;
+                trm.Type = TermType.String;
+                Get();
             }
             else if (StartOf(15))
             {
