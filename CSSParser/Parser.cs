@@ -1130,7 +1130,7 @@ namespace BoneSoft.CSS
                     }
                     if (StartOf(17))
                     {
-                        while (la.kind == 34 || la.kind == 36 || la.kind == 43)
+                        while ((la.kind == 34 && t.kind != 4) || la.kind == 36 || la.kind == 43)
                         {
                             if (la.kind == 43)
                             {

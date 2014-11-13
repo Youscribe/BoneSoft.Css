@@ -190,6 +190,7 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
+
     public class With_invalid_semicolons : And_ParseText
     {
         protected override void Establish_context()
@@ -213,6 +214,30 @@ div.sidebar div.caution, div.sidebar div.important {
         public void Then_remove_empty_expressions()
         {
             document.RuleSets.SelectMany(s => s.Declarations).Select(s => s.Expression).Count().ShouldEqual(6);
+        }
+    }
+
+
+    public class With_declaration_containing_rules_values_with_dot : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"h1.quae-numero-partie {
+                           font-family: Tahoma, Geneva, sans-serif;
+                           text-align: left;
+                           color: #808080;
+                           margin-bottom: 0;
+                           padding-left: .3em;
+                           border-left: solid .5em black;
+	                       }";
+        }
+
+        [Fact]
+        public void Then_check_if_there_is_space_before_dot_to_know_if_this_is_another_rule()
+        {
+            document.ToString().ShouldContain(@"border-left: solid .5em black;");
         }
     }
 
