@@ -58,6 +58,25 @@ namespace CssParserTests
         }
     }
 
+
+    public class With_quoted_format_value : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"@font-face {
+	src: url('resources/angelina.TTF') format('truetype')
+}";
+        }
+
+        [Fact]
+        public void Then_dont_add_extra_quote()
+        {
+            document.ToString().ShouldContain("src: url('resources/angelina.TTF') format('truetype')");
+        }
+    }
+
     public class With_rule_containing_content_with_empty_value : And_ParseText
     {
         protected override void Establish_context()
