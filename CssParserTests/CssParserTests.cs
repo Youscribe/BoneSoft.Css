@@ -58,7 +58,6 @@ namespace CssParserTests
         }
     }
 
-
     public class With_quoted_format_value : And_ParseText
     {
         protected override void Establish_context()
@@ -74,6 +73,22 @@ namespace CssParserTests
         public void Then_dont_add_extra_quote()
         {
             document.ToString().ShouldContain("src: url('resources/angelina.TTF') format('truetype')");
+        }
+    }
+
+    public class With_media_directive_with_expression : And_ParseText
+    {
+        protected override void Establish_context()
+        {
+            base.Establish_context();
+
+            textToParse = @"@media amzn-mobi { }";
+        }
+
+        [Fact]
+        public void Then_expression_should_be_conserved()
+        {
+            document.ToString().ShouldContain("@media amzn-mobi");
         }
     }
 
@@ -209,7 +224,6 @@ div.sidebar div.caution, div.sidebar div.important {
         }
     }
 
-
     public class With_invalid_semicolons : And_ParseText
     {
         protected override void Establish_context()
@@ -235,7 +249,6 @@ div.sidebar div.caution, div.sidebar div.important {
             document.RuleSets.SelectMany(s => s.Declarations).Select(s => s.Expression).Count().ShouldEqual(6);
         }
     }
-
 
     public class With_declaration_containing_rules_values_with_dot : And_ParseText
     {

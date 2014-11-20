@@ -224,6 +224,21 @@ namespace BoneSoft.CSS
                 }
                 txt.Append(m.ToString());
             }
+
+            if (this.expression != null)
+            {
+                if (first)
+                {
+                    first = false;
+                    txt.Append(" ");
+                }
+                else
+                {
+                    txt.Append(", ");
+                }
+                txt.Append(expression.ToString());
+            }
+
             txt.Append(" {\r\n");
 
             foreach (RuleSet rules in rulesets)
