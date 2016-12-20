@@ -19,8 +19,8 @@ namespace BoneSoft.CSS
         public Scanner scanner;
         public Errors errors;
 
-        public Token t;    // last recognized token
-        public Token la;   // lookahead token
+        public Token lastRecognizedToken;    // last recognized token
+        public Token nextToken;   // lookahead token
         int errDist = minErrDist;
 
         public CSSDocument CSSDoc;
@@ -28,9 +28,9 @@ namespace BoneSoft.CSS
         bool PartOfHex(string value)
         {
             if (value.Length == 7) { return false; }
-            if (value.Length + la.val.Length > 7) { return false; }
+            if (value.Length + nextToken.val.Length > 7) { return false; }
             System.Collections.Generic.List<string> hexes = new System.Collections.Generic.List<string>(new string[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F", "a", "b", "c", "d", "e", "f" });
-            foreach (char c in la.val)
+            foreach (char c in nextToken.val)
             {
                 if (!hexes.Contains(c.ToString()))
                 {
@@ -42,16 +42,16 @@ namespace BoneSoft.CSS
 
         bool IsUnit()
         {
-            if (la.kind != 1) { return false; }
+            if (nextToken.kind != 1) { return false; }
             System.Collections.Generic.List<string> units = new System.Collections.Generic.List<string>(new string[] { "em", "ex", "px", "gd", "rem", "vw", "vh", "vm", "ch", "mm", "cm", "in", "pt", "pc", "deg", "grad", "rad", "turn", "ms", "s", "hz", "khz" });
-            return units.Contains(la.val.ToLower());
+            return units.Contains(nextToken.val.ToLower());
         }
 
         bool IsNumber()
         {
-            if (la.val.Length > 0)
+            if (nextToken.val.Length > 0)
             {
-                return char.IsDigit(la.val[0]);
+                return char.IsDigit(nextToken.val[0]);
             }
             return false;
         }
@@ -68,64 +68,64 @@ namespace BoneSoft.CSS
 
         void SynErr(int n)
         {
-            if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
+            if (errDist >= minErrDist) errors.SynErr(nextToken.line, nextToken.col, n);
             errDist = 0;
         }
 
         public void SemErr(string msg)
         {
-            if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
+            if (errDist >= minErrDist) errors.SemErr(lastRecognizedToken.line, lastRecognizedToken.col, msg);
             errDist = 0;
         }
 
-        void Get()
+        void GetNextToken()
         {
             for (; ; )
             {
-                t = la;
-                la = scanner.Scan();
-                if (la.kind <= maxT)
+                lastRecognizedToken = nextToken;
+                nextToken = scanner.Scan();
+                if (nextToken.kind <= maxT)
                 {
                     ++errDist;
                     break;
                 }
 
-                la = t;
+                nextToken = lastRecognizedToken;
             }
         }
 
         void Expect(int n)
         {
-            if (la.kind == n) Get(); else { SynErr(n); }
+            if (nextToken.kind == n) GetNextToken(); else { SynErr(n); }
         }
 
         bool StartOf(int s)
         {
-            return set[s, la.kind];
+            return set[s, nextToken.kind];
         }
 
         void ExpectWeak(int n, int follow)
         {
-            if (la.kind == n) Get();
+            if (nextToken.kind == n) GetNextToken();
             else
             {
                 SynErr(n);
-                while (!StartOf(follow)) Get();
+                while (!StartOf(follow)) GetNextToken();
             }
         }
 
         bool WeakSeparator(int n, int syFol, int repFol)
         {
-            int kind = la.kind;
-            if (kind == n) { Get(); return true; }
+            int kind = nextToken.kind;
+            if (kind == n) { GetNextToken(); return true; }
             else if (StartOf(repFol)) { return false; }
             else
             {
                 SynErr(n);
                 while (!(set[syFol, kind] || set[repFol, kind] || set[0, kind]))
                 {
-                    Get();
-                    kind = la.kind;
+                    GetNextToken();
+                    kind = nextToken.kind;
                 }
                 return StartOf(syFol);
             }
@@ -138,19 +138,19 @@ namespace BoneSoft.CSS
             RuleSet rset = null;
             Directive dir = null;
 
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            while (la.kind == 5 || la.kind == 6)
+            while (nextToken.kind == 5 || nextToken.kind == 6)
             {
-                if (la.kind == 5)
+                if (nextToken.kind == 5)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 else
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
             while (StartOf(1))
@@ -165,20 +165,20 @@ namespace BoneSoft.CSS
                     directive(out dir);
                     CSSDoc.Directives.Add(dir);
                 }
-                while (la.kind == 5 || la.kind == 6)
+                while (nextToken.kind == 5 || nextToken.kind == 6)
                 {
-                    if (la.kind == 5)
+                    if (nextToken.kind == 5)
                     {
-                        Get();
+                        GetNextToken();
                     }
                     else
                     {
-                        Get();
+                        GetNextToken();
                     }
                 }
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
         }
@@ -191,31 +191,31 @@ namespace BoneSoft.CSS
 
             selector(out sel);
             rset.Selectors.Add(sel);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            while (la.kind == 25)
+            while (nextToken.kind == 25)
             {
-                Get();
-                while (la.kind == 4)
+                GetNextToken();
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 selector(out sel);
 
                 if (!string.IsNullOrEmpty(sel.ToString()))
                     rset.Selectors.Add(sel);
 
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
             Expect(26);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             if (StartOf(3))
             {
@@ -223,41 +223,41 @@ namespace BoneSoft.CSS
 
                 if (IsValideDeclaration(dec))
                     rset.Declarations.Add(dec);
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
-                while (la.kind == 27)
+                while (nextToken.kind == 27)
                 {
-                    Get();
-                    while (la.kind == 4)
+                    GetNextToken();
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
-                    if (la.val.Equals("}")) { Get(); return; }
+                    if (nextToken.val.Equals("}")) { GetNextToken(); return; }
 
                     declaration(out dec);
 
                     if (IsValideDeclaration(dec))
                         rset.Declarations.Add(dec);
-                    while (la.kind == 4)
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
                 }
-                if (la.kind == 27)
+                if (nextToken.kind == 27)
                 {
-                    Get();
-                    while (la.kind == 4)
+                    GetNextToken();
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
                 }
             }
             Expect(28);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
         }
 
@@ -306,9 +306,9 @@ namespace BoneSoft.CSS
 
             Expect(23);
             dir.Name = "@";
-            if (la.kind == 24)
+            if (nextToken.kind == 24)
             {
-                Get();
+                GetNextToken();
                 dir.Name += "-";
             }
             identity(out ident);
@@ -324,9 +324,9 @@ namespace BoneSoft.CSS
                 default: dir.Type = DirectiveType.Other; break;
             }
 
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             if (StartOf(4))
             {
@@ -334,22 +334,22 @@ namespace BoneSoft.CSS
                 {
                     medium(out m);
                     dir.Mediums.Add(m);
-                    while (la.kind == 4)
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
-                    while (la.kind == 25)
+                    while (nextToken.kind == 25)
                     {
-                        Get();
-                        while (la.kind == 4)
+                        GetNextToken();
+                        while (nextToken.kind == 4)
                         {
-                            Get();
+                            GetNextToken();
                         }
                         medium(out m);
                         dir.Mediums.Add(m);
-                        while (la.kind == 4)
+                        while (nextToken.kind == 4)
                         {
-                            Get();
+                            GetNextToken();
                         }
                     }
                 }
@@ -357,18 +357,18 @@ namespace BoneSoft.CSS
                 {
                     expr(out exp);
                     dir.Expression = exp;
-                    while (la.kind == 4)
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
                 }
             }
-            if (la.kind == 26)
+            if (nextToken.kind == 26)
             {
-                Get();
-                while (la.kind == 4)
+                GetNextToken();
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 if (StartOf(6))
                 {
@@ -380,32 +380,32 @@ namespace BoneSoft.CSS
 
                             if (IsValideDeclaration(dec))
                                 dir.Declarations.Add(dec);
-                            while (la.kind == 4)
+                            while (nextToken.kind == 4)
                             {
-                                Get();
+                                GetNextToken();
                             }
-                            while (la.kind == 27)
+                            while (nextToken.kind == 27)
                             {
-                                Get();
-                                while (la.kind == 4)
+                                GetNextToken();
+                                while (nextToken.kind == 4)
                                 {
-                                    Get();
+                                    GetNextToken();
                                 }
-                                if (la.val.Equals("}")) { Get(); return; }
+                                if (nextToken.val.Equals("}")) { GetNextToken(); return; }
                                 declaration(out dec);
                                 if (IsValideDeclaration(dec))
                                     dir.Declarations.Add(dec);
-                                while (la.kind == 4)
+                                while (nextToken.kind == 4)
                                 {
-                                    Get();
+                                    GetNextToken();
                                 }
                             }
-                            if (la.kind == 27)
+                            if (nextToken.kind == 27)
                             {
-                                Get();
-                                while (la.kind == 4)
+                                GetNextToken();
+                                while (nextToken.kind == 4)
                                 {
-                                    Get();
+                                    GetNextToken();
                                 }
                             }
                         }
@@ -413,34 +413,34 @@ namespace BoneSoft.CSS
                         {
                             ruleset(out rset);
                             dir.RuleSets.Add(rset);
-                            while (la.kind == 4)
+                            while (nextToken.kind == 4)
                             {
-                                Get();
+                                GetNextToken();
                             }
                         }
                         else
                         {
                             directive(out dr);
                             dir.Directives.Add(dr);
-                            while (la.kind == 4)
+                            while (nextToken.kind == 4)
                             {
-                                Get();
+                                GetNextToken();
                             }
                         }
                     }
                 }
                 Expect(28);
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
-            else if (la.kind == 27)
+            else if (nextToken.kind == 27)
             {
-                Get();
-                while (la.kind == 4)
+                GetNextToken();
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
             else SynErr(50);
@@ -450,13 +450,13 @@ namespace BoneSoft.CSS
         {
             qs = "";
             char quote = '\n';
-            if (la.kind == 7)
+            if (nextToken.kind == 7)
             {
-                Get();
+                GetNextToken();
                 quote = '\'';
                 qs += quote;
 
-                if (la.kind == 7)
+                if (nextToken.kind == 7)
                 {
                     qs += quote;
                 }
@@ -464,21 +464,21 @@ namespace BoneSoft.CSS
                 {
                     while (StartOf(7))
                     {
-                        Get();
-                        qs += t.val;
-                        if (la.val.Equals("'") && !t.val.Equals("\\")) { qs += quote; break; }
+                        GetNextToken();
+                        qs += lastRecognizedToken.val;
+                        if (nextToken.val.Equals("'") && !lastRecognizedToken.val.Equals("\\")) { qs += quote; break; }
                     }
                 }
 
                 Expect(7);
             }
-            else if (la.kind == 8)
+            else if (nextToken.kind == 8)
             {
-                Get();
+                GetNextToken();
                 quote = '"';
                 qs += quote;
 
-                if (la.kind == 8)
+                if (nextToken.kind == 8)
                 {
                     qs += quote;
                 }
@@ -486,9 +486,9 @@ namespace BoneSoft.CSS
                 {
                     while (StartOf(8))
                     {
-                        Get();
-                        qs += t.val;
-                        if (la.val.Equals("\"") && !t.val.Equals("\\")) { qs += quote; break; }
+                        GetNextToken();
+                        qs += lastRecognizedToken.val;
+                        if (nextToken.val.Equals("\"") && !lastRecognizedToken.val.Equals("\\")) { qs += quote; break; }
                     }
                 }
                 Expect(8);
@@ -500,19 +500,19 @@ namespace BoneSoft.CSS
         {
             url = "";
             Expect(9);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            if (la.kind == 10)
+            if (nextToken.kind == 10)
             {
-                Get();
+                GetNextToken();
             }
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            if (la.kind == 7 || la.kind == 8)
+            if (nextToken.kind == 7 || nextToken.kind == 8)
             {
                 QuotedString(out url);
             }
@@ -520,84 +520,84 @@ namespace BoneSoft.CSS
             {
                 while (StartOf(10))
                 {
-                    Get();
-                    url += t.val;
-                    if (la.val.Equals(")")) { break; }
+                    GetNextToken();
+                    url += lastRecognizedToken.val;
+                    if (nextToken.val.Equals(")")) { break; }
                 }
             }
             else SynErr(52);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            if (la.kind == 11)
+            if (nextToken.kind == 11)
             {
-                Get();
+                GetNextToken();
             }
         }
 
         void medium(out Medium m)
         {
             m = Medium.all;
-            switch (la.kind)
+            switch (nextToken.kind)
             {
                 case 12:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.all;
                         break;
                     }
                 case 13:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.aural;
                         break;
                     }
                 case 14:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.braille;
                         break;
                     }
                 case 15:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.embossed;
                         break;
                     }
                 case 16:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.handheld;
                         break;
                     }
                 case 17:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.print;
                         break;
                     }
                 case 18:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.projection;
                         break;
                     }
                 case 19:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.screen;
                         break;
                     }
                 case 20:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.tty;
                         break;
                     }
                 case 21:
                     {
-                        Get();
+                        GetNextToken();
                         m = Medium.tv;
                         break;
                     }
@@ -608,90 +608,90 @@ namespace BoneSoft.CSS
         void identity(out string ident)
         {
             ident = "";
-            switch (la.kind)
+            switch (nextToken.kind)
             {
                 case 1:
                     {
-                        Get();
+                        GetNextToken();
 
-                        if (la.kind == 49)
+                        if (nextToken.kind == 49)
                         {
-                            ident = t.val + la.val;
+                            ident = lastRecognizedToken.val + nextToken.val;
 
-                            Get();
+                            GetNextToken();
 
-                            ident += la.val;
+                            ident += nextToken.val;
 
-                            Get();
+                            GetNextToken();
                         }
 
                         break;
                     }
                 case 22:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 9:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 12:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 13:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 14:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 15:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 16:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 17:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 18:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 19:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 20:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 case 21:
                     {
-                        Get();
+                        GetNextToken();
                         break;
                     }
                 default: SynErr(54); break;
             }
 
             if (string.IsNullOrEmpty(ident))
-                ident += t.val;
+                ident += lastRecognizedToken.val;
         }
 
         void expr(out Expression exp)
@@ -702,27 +702,27 @@ namespace BoneSoft.CSS
 
             term(out trm);
             exp.Terms.Add(trm);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             while (StartOf(11))
             {
-                if (la.kind == 25 || la.kind == 46)
+                if (nextToken.kind == 25 || nextToken.kind == 46)
                 {
-                    if (la.kind == 46)
+                    if (nextToken.kind == 46)
                     {
-                        Get();
+                        GetNextToken();
                         sep = '/';
                     }
                     else
                     {
-                        Get();
+                        GetNextToken();
                         sep = ',';
                     }
-                    while (la.kind == 4)
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
                 }
                 term(out trm);
@@ -730,9 +730,9 @@ namespace BoneSoft.CSS
                 exp.Terms.Add(trm);
                 sep = null;
 
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
         }
@@ -743,40 +743,43 @@ namespace BoneSoft.CSS
             Expression exp = null;
             string ident = "";
 
-            if (la.kind == 24)
+            if (nextToken.kind == 24)
             {
-                Get();
+                GetNextToken();
                 dec.Name += "-";
             }
             identity(out ident);
             dec.Name += ident;
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             Expect(43);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             expr(out exp);
             dec.Expression = exp;
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            if (la.kind == 44)
+            if (nextToken.kind == 44)
             {
-                Get();
-                while (la.kind == 4)
+                GetNextToken();
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 Expect(45);
                 dec.Important = true;
-                while (la.kind == 4)
+                if (lastRecognizedToken.val == "!" && nextToken.val == "Important")
+                    GetNextToken();
+
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
         }
@@ -789,42 +792,42 @@ namespace BoneSoft.CSS
 
             simpleselector(out ss);
             sel.SimpleSelectors.Add(ss);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             while (StartOf(12))
             {
-                if (la.kind == 29 || la.kind == 30 || la.kind == 31)
+                if (nextToken.kind == 29 || nextToken.kind == 30 || nextToken.kind == 31)
                 {
-                    if (la.kind == 29)
+                    if (nextToken.kind == 29)
                     {
-                        Get();
+                        GetNextToken();
                         cb = Combinator.PrecededImmediatelyBy;
                     }
-                    else if (la.kind == 30)
+                    else if (nextToken.kind == 30)
                     {
-                        Get();
+                        GetNextToken();
                         cb = Combinator.ChildOf;
                     }
                     else
                     {
-                        Get();
+                        GetNextToken();
                         cb = Combinator.PrecededBy;
                     }
                 }
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 simpleselector(out ss);
                 if (cb.HasValue) { ss.Combinator = cb.Value; }
                 sel.SimpleSelectors.Add(ss);
 
                 cb = null;
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
         }
@@ -840,45 +843,45 @@ namespace BoneSoft.CSS
 
             if (StartOf(3))
             {
-                if (la.kind == 24)
+                if (nextToken.kind == 24)
                 {
-                    Get();
+                    GetNextToken();
                     ss.ElementName += "-";
                 }
                 identity(out ident);
                 ss.ElementName += ident;
             }
-            else if (la.kind == 32)
+            else if (nextToken.kind == 32)
             {
-                Get();
+                GetNextToken();
                 ss.ElementName = "*";
             }
             else if (StartOf(13))
             {
-                if (la.kind == 33)
+                if (nextToken.kind == 33)
                 {
-                    Get();
-                    if (la.kind == 24)
+                    GetNextToken();
+                    if (nextToken.kind == 24)
                     {
-                        Get();
+                        GetNextToken();
                         ss.ID = "-";
                     }
                     identity(out ident);
                     if (ss.ID == null) { ss.ID = ident; } else { ss.ID += ident; }
                 }
-                else if (la.kind == 34)
+                else if (nextToken.kind == 34)
                 {
-                    Get();
+                    GetNextToken();
                     ss.Class = "";
-                    if (la.kind == 24)
+                    if (nextToken.kind == 24)
                     {
-                        Get();
+                        GetNextToken();
                         ss.Class += "-";
                     }
                     identity(out ident);
                     ss.Class += ident;
                 }
-                else if (la.kind == 35)
+                else if (nextToken.kind == 35)
                 {
                     attrib(out atb);
                     ss.Attribute = atb;
@@ -893,36 +896,36 @@ namespace BoneSoft.CSS
             while (StartOf(13))
             {
                 SimpleSelector child = new SimpleSelector();
-                if (la.kind == 33)
+                if (nextToken.kind == 33)
                 {
-                    Get();
-                    if (la.kind == 24)
+                    GetNextToken();
+                    if (nextToken.kind == 24)
                     {
-                        Get();
+                        GetNextToken();
                         child.ID = "-";
                     }
                     identity(out ident);
                     if (child.ID == null) { child.ID = ident; } else { child.ID += "-"; }
                 }
-                else if (la.kind == 34)
+                else if (nextToken.kind == 34)
                 {
-                    Get();
+                    GetNextToken();
 
-                    if (la.kind == 4 || la.kind == 26)
+                    if (nextToken.kind == 4 || nextToken.kind == 26)
                     {
                         return;
                     }
 
                     child.Class = "";
-                    if (la.kind == 24)
+                    if (nextToken.kind == 24)
                     {
-                        Get();
+                        GetNextToken();
                         child.Class += "-";
                     }
                     identity(out ident);
                     child.Class += ident;
                 }
-                else if (la.kind == 35)
+                else if (nextToken.kind == 35)
                 {
                     attrib(out atb);
                     child.Attribute = atb;
@@ -945,82 +948,82 @@ namespace BoneSoft.CSS
             string ident = null;
 
             Expect(35);
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
 
             identity(out ident);
 
             atb.Operand = ident;
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
             if (StartOf(14))
             {
-                switch (la.kind)
+                switch (nextToken.kind)
                 {
                     case 36:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.Equals;
                             break;
                         }
                     case 37:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.InList;
                             break;
                         }
                     case 38:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.Hyphenated;
                             break;
                         }
                     case 39:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.EndsWith;
                             break;
                         }
                     case 40:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.BeginsWith;
                             break;
                         }
                     case 41:
                         {
-                            Get();
+                            GetNextToken();
                             atb.Operator = AttributeOperator.Contains;
                             break;
                         }
                 }
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 if (StartOf(3))
                 {
-                    if (la.kind == 24)
+                    if (nextToken.kind == 24)
                     {
-                        Get();
+                        GetNextToken();
                         atb.Value += "-";
                     }
                     identity(out ident);
                     atb.Value += ident;
                 }
-                else if (la.kind == 7 || la.kind == 8)
+                else if (nextToken.kind == 7 || nextToken.kind == 8)
                 {
                     QuotedString(out quote);
                     atb.Value = quote;
                 }
                 else SynErr(56);
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
             }
             Expect(42);
@@ -1033,40 +1036,40 @@ namespace BoneSoft.CSS
             string ident = null;
 
             Expect(43);
-            if (la.kind == 43)
+            if (nextToken.kind == 43)
             {
-                Get();
+                GetNextToken();
             }
 
-            while (la.kind == 4)
+            while (nextToken.kind == 4)
             {
-                Get();
+                GetNextToken();
             }
-            if (la.kind == 24)
+            if (nextToken.kind == 24)
             {
-                Get();
+                GetNextToken();
                 pseudo += "-";
             }
             identity(out ident);
             pseudo += ident;
-            if (la.kind == 10)
+            if (nextToken.kind == 10)
             {
-                Get();
-                pseudo += t.val;
-                while (la.kind == 4)
+                GetNextToken();
+                pseudo += lastRecognizedToken.val;
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
 
                 expr(out exp);
                 pseudo += exp.ToString();
 
-                while (la.kind == 4)
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
                 Expect(11);
-                pseudo += t.val;
+                pseudo += lastRecognizedToken.val;
             }
         }
 
@@ -1077,46 +1080,46 @@ namespace BoneSoft.CSS
             Expression exp = null;
             string ident = null;
 
-            if (la.kind == 7 || la.kind == 8)
+            if (nextToken.kind == 7 || nextToken.kind == 8)
             {
                 QuotedString(out val);
                 trm.Value = val; trm.Type = TermType.String;
             }
-            else if (la.kind == 9)
+            else if (nextToken.kind == 9)
             {
                 URI(out val);
                 trm.Value = val; trm.Type = TermType.Url;
             }
-            else if (la.kind == 47)
+            else if (nextToken.kind == 47)
             {
-                Get();
+                GetNextToken();
                 identity(out ident);
                 trm.Value = "U\\" + ident; trm.Type = TermType.Unicode;
             }
-            else if (la.kind == 33)
+            else if (nextToken.kind == 33)
             {
                 HexValue(out val);
                 trm.Value = val; trm.Type = TermType.Hex;
             }
-            else if (la.kind == 43)
+            else if (nextToken.kind == 43)
             {
                 trm.Value += ":";
-                Get();
-                while (la.kind == 4)
+                GetNextToken();
+                while (nextToken.kind == 4)
                 {
-                    Get();
+                    GetNextToken();
                 }
 
-                trm.Value += la.val;
+                trm.Value += nextToken.val;
                 trm.Type = TermType.String;
-                Get();
+                GetNextToken();
             }
             else if (StartOf(15))
             {
                 bool minus = false;
-                if (la.kind == 24)
+                if (nextToken.kind == 24)
                 {
-                    Get();
+                    GetNextToken();
                     minus = true;
                 }
                 if (StartOf(16))
@@ -1124,82 +1127,82 @@ namespace BoneSoft.CSS
                     identity(out ident);
                     trm.Value = ident; trm.Type = TermType.String;
                     if (minus) { trm.Value = "-" + trm.Value; }
-                    while (la.kind == 4)
+                    while (nextToken.kind == 4)
                     {
-                        Get();
+                        GetNextToken();
                     }
                     if (StartOf(17))
                     {
-                        while ((la.kind == 34 && t.kind != 4) || la.kind == 36 || la.kind == 43)
+                        while ((nextToken.kind == 34 && lastRecognizedToken.kind != 4) || nextToken.kind == 36 || nextToken.kind == 43)
                         {
-                            if (la.kind == 43)
+                            if (nextToken.kind == 43)
                             {
-                                Get();
-                                trm.Value += t.val;
+                                GetNextToken();
+                                trm.Value += lastRecognizedToken.val;
                                 if (StartOf(18))
                                 {
-                                    if (la.kind == 43)
+                                    if (nextToken.kind == 43)
                                     {
-                                        Get();
-                                        trm.Value += t.val;
+                                        GetNextToken();
+                                        trm.Value += lastRecognizedToken.val;
                                     }
-                                    if (la.kind == 24)
+                                    if (nextToken.kind == 24)
                                     {
-                                        Get();
-                                        trm.Value += t.val;
+                                        GetNextToken();
+                                        trm.Value += lastRecognizedToken.val;
                                     }
                                     identity(out ident);
                                     trm.Value += ident;
                                 }
-                                else if (la.kind == 33)
+                                else if (nextToken.kind == 33)
                                 {
                                     HexValue(out val);
                                     trm.Value += val;
                                 }
                                 else if (StartOf(19))
                                 {
-                                    while (la.kind == 3)
+                                    while (nextToken.kind == 3)
                                     {
-                                        Get();
-                                        trm.Value += t.val;
+                                        GetNextToken();
+                                        trm.Value += lastRecognizedToken.val;
                                     }
-                                    if (la.kind == 34)
+                                    if (nextToken.kind == 34)
                                     {
-                                        Get();
+                                        GetNextToken();
                                         trm.Value += ".";
-                                        while (la.kind == 3)
+                                        while (nextToken.kind == 3)
                                         {
-                                            Get();
-                                            trm.Value += t.val;
+                                            GetNextToken();
+                                            trm.Value += lastRecognizedToken.val;
                                         }
                                     }
                                 }
                                 else SynErr(57);
                             }
-                            else if (la.kind == 34)
+                            else if (nextToken.kind == 34)
                             {
-                                Get();
-                                trm.Value += t.val;
-                                if (la.kind == 24)
+                                GetNextToken();
+                                trm.Value += lastRecognizedToken.val;
+                                if (nextToken.kind == 24)
                                 {
-                                    Get();
-                                    trm.Value += t.val;
+                                    GetNextToken();
+                                    trm.Value += lastRecognizedToken.val;
                                 }
                                 identity(out ident);
                                 trm.Value += ident;
                             }
                             else
                             {
-                                Get();
-                                trm.Value += t.val;
-                                while (la.kind == 4)
+                                GetNextToken();
+                                trm.Value += lastRecognizedToken.val;
+                                while (nextToken.kind == 4)
                                 {
-                                    Get();
+                                    GetNextToken();
                                 }
-                                if (la.kind == 24)
+                                if (nextToken.kind == 24)
                                 {
-                                    Get();
-                                    trm.Value += t.val;
+                                    GetNextToken();
+                                    trm.Value += lastRecognizedToken.val;
                                 }
                                 if (StartOf(16))
                                 {
@@ -1208,22 +1211,22 @@ namespace BoneSoft.CSS
                                 }
                                 else if (StartOf(19))
                                 {
-                                    while (la.kind == 3)
+                                    while (nextToken.kind == 3)
                                     {
-                                        Get();
-                                        trm.Value += t.val;
+                                        GetNextToken();
+                                        trm.Value += lastRecognizedToken.val;
                                     }
                                 }
                                 else SynErr(58);
                             }
                         }
                     }
-                    if (la.kind == 10)
+                    if (nextToken.kind == 10)
                     {
-                        Get();
-                        while (la.kind == 4)
+                        GetNextToken();
+                        while (nextToken.kind == 4)
                         {
-                            Get();
+                            GetNextToken();
                         }
                         expr(out exp);
                         Function func = new Function();
@@ -1233,67 +1236,67 @@ namespace BoneSoft.CSS
                         trm.Function = func;
                         trm.Type = TermType.Function;
 
-                        while (la.kind == 4)
+                        while (nextToken.kind == 4)
                         {
-                            Get();
+                            GetNextToken();
                         }
                         Expect(11);
                     }
                 }
                 else if (StartOf(15))
                 {
-                    if (la.kind == 29)
+                    if (nextToken.kind == 29)
                     {
-                        Get();
+                        GetNextToken();
                         trm.Sign = '+';
                     }
                     if (minus) { trm.Sign = '-'; }
-                    while (la.kind == 3)
+                    while (nextToken.kind == 3)
                     {
-                        Get();
-                        val += t.val;
+                        GetNextToken();
+                        val += lastRecognizedToken.val;
                     }
-                    if (la.kind == 34)
+                    if (nextToken.kind == 34)
                     {
-                        Get();
-                        val += t.val;
-                        while (la.kind == 3)
+                        GetNextToken();
+                        val += lastRecognizedToken.val;
+                        while (nextToken.kind == 3)
                         {
-                            Get();
-                            val += t.val;
+                            GetNextToken();
+                            val += lastRecognizedToken.val;
                         }
                     }
                     if (StartOf(20))
                     {
-                        if (la.val.ToLower().Equals("n"))
+                        if (nextToken.val.ToLower().Equals("n"))
                         {
                             Expect(22);
-                            val += t.val;
-                            if (la.kind == 24 || la.kind == 29)
+                            val += lastRecognizedToken.val;
+                            if (nextToken.kind == 24 || nextToken.kind == 29)
                             {
-                                if (la.kind == 29)
+                                if (nextToken.kind == 29)
                                 {
-                                    Get();
-                                    val += t.val;
+                                    GetNextToken();
+                                    val += lastRecognizedToken.val;
                                 }
                                 else
                                 {
-                                    Get();
-                                    val += t.val;
+                                    GetNextToken();
+                                    val += lastRecognizedToken.val;
                                 }
                                 Expect(3);
-                                val += t.val;
-                                while (la.kind == 3)
+                                val += lastRecognizedToken.val;
+                                while (nextToken.kind == 3)
                                 {
-                                    Get();
-                                    val += t.val;
+                                    GetNextToken();
+                                    val += lastRecognizedToken.val;
                                 }
                             }
                         }
-                        else if (la.kind == 48)
+                        else if (nextToken.kind == 48)
                         {
-                            Get();
-                            trm.Unit = Unit.Percent;
+                            GetNextToken();
+                            trm.Unit = Unit.Percent; // %
                         }
                         else
                         {
@@ -1306,7 +1309,7 @@ namespace BoneSoft.CSS
                                 }
                                 catch
                                 {
-                                    errors.SemErr(t.line, t.col, string.Format("Unrecognized unit '{0}'", ident));
+                                    errors.SemErr(lastRecognizedToken.line, lastRecognizedToken.col, string.Format("Unrecognized unit '{0}'", ident));
                                 }
                             }
                         }
@@ -1324,33 +1327,33 @@ namespace BoneSoft.CSS
             bool found = false;
 
             Expect(33);
-            val += t.val;
+            val += lastRecognizedToken.val;
             if (StartOf(19))
             {
-                while (la.kind == 3)
+                while (nextToken.kind == 3)
                 {
-                    Get();
-                    val += t.val;
+                    GetNextToken();
+                    val += lastRecognizedToken.val;
                 }
             }
             else if (PartOfHex(val))
             {
                 Expect(1);
-                val += t.val; found = true;
+                val += lastRecognizedToken.val; found = true;
             }
             else SynErr(61);
             if (!found && PartOfHex(val))
             {
                 Expect(1);
-                val += t.val;
+                val += lastRecognizedToken.val;
             }
         }
 
         public void Parse()
         {
-            la = new Token();
-            la.val = "";
-            Get();
+            nextToken = new Token();
+            nextToken.val = "";
+            GetNextToken();
             CSS3();
 
             Expect(0);
